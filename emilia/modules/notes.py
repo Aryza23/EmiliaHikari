@@ -211,23 +211,14 @@ def save(update, context):
 		chat_name = dispatcher.bot.getChat(conn).title
 	else:
 		chat_id = update.effective_chat.id
-		if chat.type == "private":
-			chat_name = "catatan lokal"
-		else:
-			chat_name = chat.title
-
+		chat_name = "catatan lokal" if chat.type == "private" else chat.title
 	msg = update.effective_message  # type: Optional[Message]
 
 	checktext = msg.text.split()
-	if msg.reply_to_message:
-		if len(checktext) <= 1:
-			send_message(update.effective_message, tl(update.effective_message, "Anda harus memberi nama untuk catatan ini!"))
-			return
-	else:
-		if len(checktext) <= 2:
-			send_message(update.effective_message, tl(update.effective_message, "Anda harus memberi nama untuk catatan ini!"))
-			return
-
+	if (msg.reply_to_message and len(checktext) <= 1
+	    or not msg.reply_to_message and len(checktext) <= 2):
+		send_message(update.effective_message, tl(update.effective_message, "Anda harus memberi nama untuk catatan ini!"))
+		return
 	note_name, text, data_type, content, buttons = get_note_type(msg)
 
 	if data_type is None:
@@ -235,8 +226,8 @@ def save(update, context):
 		return
 
 	if len(text.strip()) == 0:
-		text = "`" + note_name + "`"
-		
+		text = f"`{note_name}`"
+
 	sql.add_note_to_db(chat_id, note_name, text, data_type, buttons=buttons, file=content)
 	if conn:
 		savedtext = tl(update.effective_message, "Ok, catatan `{note_name}` disimpan di *{chat_name}*.").format(note_name=note_name, chat_name=chat_name)

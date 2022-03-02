@@ -27,9 +27,7 @@ def about_me(update, context):
     else:
         user = message.from_user
 
-    info = sql.get_user_me_info(user.id)
-
-    if info:
+    if info := sql.get_user_me_info(user.id):
         send_message(update.effective_message, "*{}*:\n{}".format(user.first_name, escape_markdown(info)),
                                             parse_mode=ParseMode.MARKDOWN)
     elif message.reply_to_message:
@@ -67,9 +65,7 @@ def about_bio(update, context):
     else:
         user = message.from_user
 
-    info = sql.get_user_bio(user.id)
-
-    if info:
+    if info := sql.get_user_bio(user.id):
         send_message(update.effective_message, "*{}*:\n{}".format(user.first_name, escape_markdown(info)),
                                             parse_mode=ParseMode.MARKDOWN)
     elif message.reply_to_message:

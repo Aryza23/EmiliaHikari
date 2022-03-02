@@ -50,7 +50,7 @@ for module_name in ALL_MODULES:
     if not hasattr(imported_module, "__mod_name__"):
         imported_module.__mod_name__ = imported_module.__name__
 
-    if not imported_module.__mod_name__.lower() in IMPORTED:
+    if imported_module.__mod_name__.lower() not in IMPORTED:
         IMPORTED[imported_module.__mod_name__.lower()] = imported_module
     else:
         raise Exception("Can't have two modules with the same name! Please change one")
@@ -133,7 +133,7 @@ def start(update, context):
                 judul = pagewiki.title
                 summary = pagewiki.summary
                 if len(summary) >= 4096:
-                    summary = summary[:4000]+"..."
+                    summary = f'{summary[:4000]}...'
                 message.reply_text("<b>{}</b>\n{}".format(judul, summary), parse_mode=ParseMode.HTML,
                     reply_markup=InlineKeyboardMarkup(
                             [[InlineKeyboardButton(text=tl(update.effective_message, "Baca di Wikipedia"), url=pagewiki.url)]]))
@@ -204,11 +204,8 @@ def error_callback(update, context):
     # we raise the error again, so the logger module catches it. If you don't use the logger module, use it.
     try:
         raise context.error
-    except Unauthorized:
+    except (Unauthorized, BadRequest):
         # remove update.message.chat_id from conversation list
-        LOGGER.exception('Update "%s" caused error "%s"', update, context.error)
-    except BadRequest:
-        # handle malformed requests - read more below!
         LOGGER.exception('Update "%s" caused error "%s"', update, context.error)
     except TimedOut:
         # handle slow connection problems
@@ -267,13 +264,11 @@ def help_button(update, context):
         # ensure no spinny white circle
         context.bot.answer_callback_query(query.id)
     except Exception as excp:
-        if excp.message == "Message is not modified":
-            pass
-        elif excp.message == "Query_id_invalid":
-            pass
-        elif excp.message == "Message can't be deleted":
-            pass
-        else:
+        if excp.message not in [
+            "Message is not modified",
+            "Query_id_invalid",
+            "Message can't be deleted",
+        ]:
             query.message.edit_text(excp.message)
             LOGGER.exception("Exception in help buttons. %s", str(query.data))
 
@@ -317,18 +312,17 @@ def send_settings(chat_id, user_id, user=False):
             dispatcher.bot.send_message(user_id, tl(chat_id, "Sepertinya tidak ada pengaturan khusus pengguna yang tersedia 😢"),
                                         parse_mode=ParseMode.MARKDOWN)
 
+    elif CHAT_SETTINGS:
+        chat_name = dispatcher.bot.getChat(chat_id).title
+        dispatcher.bot.send_message(user_id,
+                                    text=tl(chat_id, "Modul mana yang ingin Anda periksa untuk pengaturan {}?").format(
+                                        chat_name),
+                                    reply_markup=InlineKeyboardMarkup(
+                                        paginate_modules(0, CHAT_SETTINGS, "stngs", chat=chat_id)))
     else:
-        if CHAT_SETTINGS:
-            chat_name = dispatcher.bot.getChat(chat_id).title
-            dispatcher.bot.send_message(user_id,
-                                        text=tl(chat_id, "Modul mana yang ingin Anda periksa untuk pengaturan {}?").format(
-                                            chat_name),
-                                        reply_markup=InlineKeyboardMarkup(
-                                            paginate_modules(0, CHAT_SETTINGS, "stngs", chat=chat_id)))
-        else:
-            dispatcher.bot.send_message(user_id, tl(chat_id, "Sepertinya tidak ada pengaturan obrolan yang tersedia 😢\nKirim ini "
-                                                 "ke obrolan Anda sebagai admin untuk menemukan pengaturannya saat ini!"),
-                                        parse_mode=ParseMode.MARKDOWN)
+        dispatcher.bot.send_message(user_id, tl(chat_id, "Sepertinya tidak ada pengaturan obrolan yang tersedia 😢\nKirim ini "
+                                             "ke obrolan Anda sebagai admin untuk menemukan pengaturannya saat ini!"),
+                                    parse_mode=ParseMode.MARKDOWN)
 
 
 @run_async
@@ -346,7 +340,7 @@ def settings_button(update, context):
             chat = context.bot.get_chat(chat_id)
             getstatusadmin = context.bot.get_chat_member(chat_id, user.id)
             isadmin = getstatusadmin.status in ('administrator', 'creator')
-            if isadmin == False or user.id != OWNER_ID:
+            if not isadmin or user.id != OWNER_ID:
                 query.message.edit_text("Status admin anda telah berubah")
                 return
             text = tl(update.effective_message, "*{}* memiliki pengaturan berikut untuk modul *{}*:\n\n").format(escape_markdown(chat.title),
@@ -395,13 +389,11 @@ def settings_button(update, context):
         # ensure no spinny white circle
         context.bot.answer_callback_query(query.id)
     except Exception as excp:
-        if excp.message == "Message is not modified":
-            pass
-        elif excp.message == "Query_id_invalid":
-            pass
-        elif excp.message == "Message can't be deleted":
-            pass
-        else:
+        if excp.message not in [
+            "Message is not modified",
+            "Query_id_invalid",
+            "Message can't be deleted",
+        ]:
             query.message.edit_text(excp.message)
             LOGGER.exception("Exception in settings buttons. %s", str(query.data))
 
@@ -415,19 +407,16 @@ def get_settings(update, context):
     args = msg.text.split(None, 1)
 
     # ONLY send settings in PM
-    if chat.type != chat.PRIVATE:
-        if is_user_admin(chat, user.id):
-            text = tl(update.effective_message, "Klik di sini untuk mendapatkan pengaturan obrolan ini, serta milik Anda.")
-            msg.reply_text(text,
-                           reply_markup=InlineKeyboardMarkup(
-                               [[InlineKeyboardButton(text="Pengaturan",
-                                                      url="t.me/{}?start=stngs_{}".format(
-                                                          context.bot.username, chat.id))]]))
-        # else:
-        #     text = tl(update.effective_message, "Klik di sini untuk memeriksa pengaturan Anda.")
-
-    else:
+    if chat.type == chat.PRIVATE:
         send_settings(chat.id, user.id, True)
+
+    elif is_user_admin(chat, user.id):
+        text = tl(update.effective_message, "Klik di sini untuk mendapatkan pengaturan obrolan ini, serta milik Anda.")
+        msg.reply_text(text,
+                       reply_markup=InlineKeyboardMarkup(
+                           [[InlineKeyboardButton(text="Pengaturan",
+                                                  url="t.me/{}?start=stngs_{}".format(
+                                                      context.bot.username, chat.id))]]))
 
 
 @run_async
@@ -468,7 +457,7 @@ def get_memory():
         free_memory = 0
         for i in mem:
             sline = i.split()
-            if str(sline[0]) in ('MemFree:', 'Buffers:', 'Cached:'):
+            if str(sline[0]) in {'MemFree:', 'Buffers:', 'Cached:'}:
                 free_memory += int(sline[1])
     return free_memory
 
@@ -533,5 +522,5 @@ def main():
     updater.idle()
 
 if __name__ == '__main__':
-    LOGGER.info("Successfully loaded modules: " + str(ALL_MODULES))
+    LOGGER.info(f"Successfully loaded modules: {str(ALL_MODULES)}")
     main()

@@ -94,8 +94,7 @@ def file(update, context):
 
 @run_async
 def getlink(update, context):
-	args = context.args
-	if args:
+	if args := context.args:
 		chat_id = int(args[0])
 	else:
 		send_message(update.effective_message, tl(update.effective_message, "Anda sepertinya tidak mengacu pada obrolan"))
@@ -110,8 +109,7 @@ def getlink(update, context):
 	
 @run_async
 def leavechat(update, context):
-	args = context.args
-	if args:
+	if args := context.args:
 		chat_id = int(args[0])
 	else:
 		send_message(update.effective_message, tl(update.effective_message, "Anda sepertinya tidak mengacu pada obrolan"))
@@ -164,11 +162,10 @@ def terjemah(update, context):
 				else:
 					target2 = None
 			else:
-				if getlang:
-					target = getlang
-					target2 = None
-				else:
+				if not getlang:
 					raise IndexError
+				target = getlang
+				target2 = None
 			teks = msg.reply_to_message.text
 			#teks = deEmojify(teks)
 			exclude_list = UNICODE_EMOJI.keys()
@@ -177,14 +174,14 @@ def terjemah(update, context):
 					teks = teks.replace(emoji, '')
 			message = update.effective_message
 			trl = Translator()
-			if target2 == None:
+			if target2 is None:
 				deteksibahasa = trl.detect(teks)
 				tekstr = trl.translate(teks, dest=target)
 				send_message(update.effective_message, tl(update.effective_message, "Diterjemahkan dari `{}` ke `{}`:\n`{}`").format(deteksibahasa.lang, target, tekstr.text), parse_mode=ParseMode.MARKDOWN)
 			else:
 				tekstr = trl.translate(teks, dest=target2, src=target)
 				send_message(update.effective_message, tl(update.effective_message, "Diterjemahkan dari `{}` ke `{}`:\n`{}`").format(target, target2, tekstr.text), parse_mode=ParseMode.MARKDOWN)
-			
+
 		else:
 			args = update.effective_message.text.split(None, 2)
 			if len(args) != 1:
@@ -204,7 +201,7 @@ def terjemah(update, context):
 					teks = teks.replace(emoji, '')
 			message = update.effective_message
 			trl = Translator()
-			if target2 == None:
+			if target2 is None:
 				deteksibahasa = trl.detect(teks)
 				tekstr = trl.translate(teks, dest=target)
 				return send_message(update.effective_message, tl(update.effective_message, "Diterjemahkan dari `{}` ke `{}`:\n`{}`").format(deteksibahasa.lang, target, tekstr.text), parse_mode=ParseMode.MARKDOWN)
@@ -242,10 +239,7 @@ def wiki(update, context):
 		return
 	except wikipedia.exceptions.DisambiguationError as refer:
 		rujuk = str(refer).split("\n")
-		if len(rujuk) >= 6:
-			batas = 6
-		else:
-			batas = len(rujuk)
+		batas = min(len(rujuk), 6)
 		teks = ""
 		for x in range(batas):
 			if x == 0:
@@ -254,7 +248,7 @@ def wiki(update, context):
 				else:
 					teks += rujuk[x]+"\n"
 			else:
-				teks += "- `"+rujuk[x]+"`\n"
+				teks += f"- `{rujuk[x]}" + "`\n"
 		send_message(update.effective_message, teks, parse_mode="markdown")
 		return
 	except IndexError:
@@ -267,7 +261,7 @@ def wiki(update, context):
 	else:
 		if len(summary) >= 200:
 			judul = pagewiki.title
-			summary = summary[:200]+"..."
+			summary = f'{summary[:200]}...'
 			button = InlineKeyboardMarkup([[InlineKeyboardButton(text=tl(update.effective_message, "Baca Lebih Lengkap"), url="t.me/{}?start=wiki-{}".format(context.bot.username, teks.replace(' ', '_')))]])
 		else:
 			button = None
@@ -296,8 +290,7 @@ def kamusbesarbahasaindonesia(update, context):
 			jarak = len(api['kateglo']['definition'])
 		for x in range(jarak):
 			parsing += "*{}.* {}".format(x+1, api['kateglo']['definition'][x]['def_text'])
-			contoh = api['kateglo']['definition'][x]['sample']
-			if contoh:
+			if contoh := api['kateglo']['definition'][x]['sample']:
 				parsing += "\nContoh: `{}`".format(str(BeautifulSoup(contoh, "lxml")).replace('<html><body><p>', '').replace('</p></body></html>', ''))
 			parsing += "\n\n"
 		send_message(update.effective_message, parsing, parse_mode=ParseMode.MARKDOWN)
@@ -313,16 +306,15 @@ def kamusbesarbahasaindonesia(update, context):
 @run_async
 @spamcheck
 def urbandictionary(update, context):
-	args = context.args
 	msg = update.effective_message
 	chat_id = update.effective_chat.id
 	message = update.effective_message
-	if args:
+	if args := context.args:
 		text = " ".join(args)
 		try:
 			mean = urbandict.define(text)
 		except Exception as err:
-			send_message(update.effective_message, "Error: " + str(err))
+			send_message(update.effective_message, f"Error: {str(err)}")
 			return
 		if len(mean) >= 0:
 			teks = ""

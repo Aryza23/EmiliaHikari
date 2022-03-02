@@ -103,7 +103,7 @@ def set_flood(update, context) -> str:
 
     if len(args) >= 1:
         val = args[0].lower()
-        if val == "off" or val == "no" or val == "0":
+        if val in ["off", "no", "0"]:
             sql.set_flood(chat_id, 0)
             if conn:
                 text = tl(update.effective_message, "Antiflood telah dinonaktifkan di *{}*.").format(chat_name)
@@ -171,13 +171,11 @@ def flood(update, context):
             text = tl(update.effective_message, "Saat ini saya tidak memberlakukan pengendalian pesan beruntun pada *{}*!").format(chat_name)
         else:
             text = tl(update.effective_message, "Saat ini saya tidak memberlakukan pengendalian pesan beruntun")
-        send_message(update.effective_message, text, parse_mode="markdown")
+    elif conn:
+        text = tl(update.effective_message, "Saat ini saya melarang pengguna jika mereka mengirim lebih dari *{}* pesan berturut-turut pada *{}*.").format(limit, chat_name)
     else:
-        if conn:
-            text = tl(update.effective_message, "Saat ini saya melarang pengguna jika mereka mengirim lebih dari *{}* pesan berturut-turut pada *{}*.").format(limit, chat_name)
-        else:
-            text = tl(update.effective_message, "Saat ini saya melarang pengguna jika mereka mengirim lebih dari *{}* pesan berturut-turut.").format(limit)
-        send_message(update.effective_message, text, parse_mode="markdown")
+        text = tl(update.effective_message, "Saat ini saya melarang pengguna jika mereka mengirim lebih dari *{}* pesan berturut-turut.").format(limit)
+    send_message(update.effective_message, text, parse_mode="markdown")
 
 
 @run_async

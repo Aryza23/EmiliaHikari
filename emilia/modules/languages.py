@@ -19,11 +19,11 @@ LANGS_TEXT = {}
 FUNC_LANG = {}
 
 for x in os.listdir('emilia/modules/langs'):
-	if os.path.isdir('emilia/modules/langs/'+x):
+	if os.path.isdir(f'emilia/modules/langs/{x}'):
 		continue
 	x = x.replace('.py', '')
 	LOADED_LANGS_ID.append(x)
-	imported_langs = importlib.import_module("emilia.modules.langs." + x)
+	imported_langs = importlib.import_module(f"emilia.modules.langs.{x}")
 	FUNC_LANG[x] = imported_langs
 	LANGS_TEXT[x] = imported_langs.__lang__
 
@@ -37,21 +37,14 @@ def tl(message, text):
 	else:
 		getlang = sql.get_lang(message.chat.id)
 		if getlang == 'None' or not getlang:
-			if message.from_user.language_code:
-				if message.from_user.language_code in LOADED_LANGS_ID:
-					sql.set_lang(message.chat.id, message.from_user.language_code)
-					getlang = message.from_user.language_code
-				else:
-					sql.set_lang(message.chat.id, 'en')
-					getlang = 'en'
+			if (message.from_user.language_code
+			    and message.from_user.language_code in LOADED_LANGS_ID):
+				sql.set_lang(message.chat.id, message.from_user.language_code)
+				getlang = message.from_user.language_code
 			else:
 				sql.set_lang(message.chat.id, 'en')
 				getlang = 'en'
-
-	getlangid = {}
-	for x in LOADED_LANGS_ID:
-		getlangid[x] = x
-
+	getlangid = {x: x for x in LOADED_LANGS_ID}
 	if str(getlang) == 'id':
 		get = getattr(FUNC_LANG['id'], 'id')
 		if text in tuple(get):
@@ -99,10 +92,7 @@ def set_language(update, context):
 			getlang = 'en'
 	loaded_langs = []
 	tmp_list = []
-	counter = 0
-
-	for x in LOADED_LANGS_ID:
-		counter += 1
+	for counter, x in enumerate(LOADED_LANGS_ID, start=1):
 		tmp_list.append(InlineKeyboardButton(LANGS_TEXT[x], callback_data="set_lang({})".format(x)))
 		if counter % 2 == 0:
 			loaded_langs.append(tmp_list)
@@ -116,11 +106,10 @@ def set_language(update, context):
 
 	if chat.title:
 		chatname = chat.title
+	elif chat.type == "private":
+		chatname = user.first_name
 	else:
-		if chat.type == "private":
-			chatname = user.first_name
-		else:
-			chatname = tl(update.effective_message, "obrolan saat ini")
+		chatname = tl(update.effective_message, "obrolan saat ini")
 
 	currlang = LANGS_TEXT[getlang] if LANGS_TEXT.get(getlang) else "(Deleted langs)"
 	send_message(update.effective_message, tl(msg, "Bahasa di *{}* saat ini adalah:\n{}.\n\nPilih bahasa:").format(chatname, currlang), parse_mode="markdown", reply_markup=keyboard)
@@ -130,8 +119,7 @@ def set_language(update, context):
 def button(update, context):
 	query = update.callback_query  # type: Optional[CallbackQuery]
 	user = update.effective_user  # type: Optional[User]
-	match = re.match(r"set_lang\((.+?)\)", query.data)
-	if match:
+	if match := re.match(r"set_lang\((.+?)\)", query.data):
 		set_lang = match.group(1)
 		chat = update.effective_chat  # type: Optional[Chat]
 		sql.set_lang(chat.id, set_lang)

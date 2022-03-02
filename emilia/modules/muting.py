@@ -22,7 +22,6 @@ from emilia.modules.helper_funcs.alternate import send_message
 @run_async
 @spamcheck
 @bot_admin
-#@can_restrict
 @user_admin
 @loggable
 def mute(update, context):
@@ -36,8 +35,7 @@ def mute(update, context):
         send_message(update.effective_message, tl(update.effective_message, "Anda harus memberi saya nama pengguna untuk membungkam, atau membalas seseorang untuk dibisukan."))
         return ""
 
-    conn = connected(context.bot, update, chat, user.id, need_admin=True)
-    if conn:
+    if conn := connected(context.bot, update, chat, user.id, need_admin=True):
         chat = dispatcher.bot.getChat(conn)
         chat_id = conn
         chat_name = dispatcher.bot.getChat(conn).title
@@ -60,9 +58,7 @@ def mute(update, context):
         send_message(update.effective_message, tl(update.effective_message, "Anda tidak punya hak untuk membatasi seseorang."))
         return ""
 
-    member = chat.get_member(int(user_id))
-
-    if member:
+    if member := chat.get_member(int(user_id)):
         if is_user_admin(chat, user_id, member=member):
             send_message(update.effective_message, tl(update.effective_message, "Saya tidak bisa menghentikan seorang admin berbicara!"))
 
@@ -100,8 +96,7 @@ def unmute(update, context):
         send_message(update.effective_message, tl(update.effective_message, "Anda harus memberi saya nama pengguna untuk menyuarakan, atau membalas seseorang untuk disuarakan."))
         return ""
 
-    conn = connected(context.bot, update, chat, user.id, need_admin=True)
-    if conn:
+    if conn := connected(context.bot, update, chat, user.id, need_admin=True):
         chat = dispatcher.bot.getChat(conn)
         chat_id = conn
         chat_name = dispatcher.bot.getChat(conn).title
@@ -122,14 +117,12 @@ def unmute(update, context):
         send_message(update.effective_message, tl(update.effective_message, "Anda tidak punya hak untuk membatasi seseorang."))
         return ""
 
-    member = chat.get_member(int(user_id))
-
-    if member:
+    if member := chat.get_member(int(user_id)):
         if is_user_admin(chat, user_id, member=member):
             send_message(update.effective_message, tl(update.effective_message, "Dia adalah admin, apa yang Anda harapkan kepada saya?"))
             return ""
 
-        elif member.status != 'kicked' and member.status != 'left':
+        elif member.status not in ['kicked', 'left']:
             if member.can_send_messages and member.can_send_media_messages \
                     and member.can_send_other_messages and member.can_add_web_page_previews:
                 send_message(update.effective_message, text, parse_mode="markdown")
@@ -159,7 +152,6 @@ def unmute(update, context):
 @run_async
 @spamcheck
 @bot_admin
-#@can_restrict
 @user_admin
 @loggable
 def temp_mute(update, context):
@@ -193,12 +185,11 @@ def temp_mute(update, context):
     try:
         member = chat.get_member(user_id)
     except BadRequest as excp:
-        if excp.message == "User not found":
-            send_message(update.effective_message, tl(update.effective_message, "Saya tidak dapat menemukan pengguna ini"))
-            return ""
-        else:
+        if excp.message != "User not found":
             raise
 
+        send_message(update.effective_message, tl(update.effective_message, "Saya tidak dapat menemukan pengguna ini"))
+        return ""
     if is_user_admin(chat, user_id, member):
         send_message(update.effective_message, tl(update.effective_message, "Saya benar-benar berharap dapat membisukan admin..."))
         return ""
@@ -219,11 +210,7 @@ def temp_mute(update, context):
     split_reason = reason.split(None, 1)
 
     time_val = split_reason[0].lower()
-    if len(split_reason) > 1:
-        reason = split_reason[1]
-    else:
-        reason = ""
-
+    reason = split_reason[1] if len(split_reason) > 1 else ""
     mutetime = extract_time(message, time_val)
 
     if not mutetime:

@@ -42,9 +42,7 @@ def get_user_id(username):
                     return userdat.id
 
             except BadRequest as excp:
-                if excp.message == 'Chat not found':
-                    pass
-                else:
+                if excp.message != 'Chat not found':
                     LOGGER.exception("Error extracting user ID")
 
     return None
@@ -76,10 +74,8 @@ def log_user(update, context):
                 uid = msg.from_user.id
                 uname = msg.from_user.name
                 print("{} | {} | {} | {}".format(text, uname, uid, chat.title))"""
-    fed_id = fedsql.get_fed_id(chat.id)
-    if fed_id:
-        user = update.effective_user
-        if user:
+    if fed_id := fedsql.get_fed_id(chat.id):
+        if user := update.effective_user:
             fban, fbanreason, fbantime = fedsql.get_fban_user(fed_id, user.id)
             if fban:
                 send_message(update.effective_message, languages.tl(update.effective_message, "Pengguna ini dilarang di federasi saat ini!\nAlasan: `{}`").format(fbanreason), parse_mode="markdown")

@@ -67,16 +67,15 @@ def ban(update, context):
         else:
             member = chat.get_member(user_id)
     except BadRequest as excp:
-        if excp.message == "User not found":
-            if conn:
-                text = tl(update.effective_message, "Saya tidak dapat menemukan pengguna ini pada *{}* 😣").format(chat_name)
-            else:
-                text = tl(update.effective_message, "Saya tidak dapat menemukan pengguna ini 😣")
-            send_message(update.effective_message, text, parse_mode="markdown")
-            return ""
-        else:
+        if excp.message != "User not found":
             raise
 
+        if conn:
+            text = tl(update.effective_message, "Saya tidak dapat menemukan pengguna ini pada *{}* 😣").format(chat_name)
+        else:
+            text = tl(update.effective_message, "Saya tidak dapat menemukan pengguna ini 😣")
+        send_message(update.effective_message, text, parse_mode="markdown")
+        return ""
     if user_id == context.bot.id:
         send_message(update.effective_message, tl(update.effective_message, "Saya tidak akan BAN diri saya sendiri, apakah kamu gila? 😠"))
         return ""
@@ -122,9 +121,7 @@ def ban(update, context):
             # Do not reply
             send_message(update.effective_message, tl(update.effective_message, "Terbanned! 😝"), quote=False)
             return log
-        elif excp.message == "Message can't be deleted":
-            pass
-        else:
+        elif excp.message != "Message can't be deleted":
             LOGGER.warning(update)
             LOGGER.exception("ERROR membanned pengguna %s di obrolan %s (%s) disebabkan oleh %s", user_id, chat.title, chat.id,
                              excp.message)

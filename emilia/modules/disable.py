@@ -41,38 +41,35 @@ if is_module_loaded(FILENAME):
             sql.disableable_cache(command)
 
         def check_update(self, update):
-            if isinstance(update, Update) and update.effective_message:
-                message = update.effective_message
+            if not isinstance(update, Update) or not update.effective_message:
+                return
+            message = update.effective_message
 
-                if message.text and len(message.text) > 1 and any(message.text.startswith(start) for start in CMD_STARTERS):
-                    command = message.text[1:message.entities[0].length]
-                    args = message.text.split()[1:]
-                    command = command.split('@')
-                    command.append(message.bot.username)
+            if message.text and len(message.text) > 1 and any(message.text.startswith(start) for start in CMD_STARTERS):
+                command = message.text[1:message.entities[0].length]
+                args = message.text.split()[1:]
+                command = command.split('@')
+                command.append(message.bot.username)
 
-                    if not (command[0].lower() in self.command
-                            and command[1].lower() == message.bot.username.lower()):
-                        return None
+                if (
+                    command[0].lower() not in self.command
+                    or command[1].lower() != message.bot.username.lower()
+                ):
+                    return None
 
-                    filter_result = self.filters(update)
-                    if filter_result:
-                        chat = update.effective_chat
-                        user = update.effective_user
+                if not (filter_result := self.filters(update)):
+                    return False
+                chat = update.effective_chat
+                user = update.effective_user
                         # disabled, admincmd, user admin
-                        if sql.is_command_disabled(chat.id, command[0].lower()):
-                            # check if command was disabled
-                            is_disabled = command[0] in ADMIN_CMDS and is_user_admin(chat, user.id)
-                            if not is_disabled and sql.is_disable_del(chat.id):
-                                # disabled and should delete
-                                update.effective_message.delete()
-                            if not is_disabled:
-                                return None
-                            else:
-                                return args, filter_result
-
-                        return args, filter_result
-                    else:
-                        return False
+                if sql.is_command_disabled(chat.id, command[0].lower()):
+                    # check if command was disabled
+                    is_disabled = command[0] in ADMIN_CMDS and is_user_admin(chat, user.id)
+                    if not is_disabled and sql.is_disable_del(chat.id):
+                        # disabled and should delete
+                        update.effective_message.delete()
+                    return None if not is_disabled else (args, filter_result)
+                return args, filter_result
 
 
     class DisableAbleMessageHandler(MessageHandler):
@@ -174,9 +171,11 @@ if is_module_loaded(FILENAME):
     @user_admin
     def list_cmds(update, context):
         if DISABLE_CMDS + DISABLE_OTHER:
-            result = ""
-            for cmd in set(DISABLE_CMDS + DISABLE_OTHER):
-                result += " - `{}`\n".format(escape_markdown(cmd))
+            result = "".join(
+                " - `{}`\n".format(escape_markdown(cmd))
+                for cmd in set(DISABLE_CMDS + DISABLE_OTHER)
+            )
+
             send_message(update.effective_message, languages.tl(update.effective_message, "Perintah berikut dapat diubah:\n{}").format(result),
                                                 parse_mode=ParseMode.MARKDOWN)
         else:
@@ -191,11 +190,11 @@ if is_module_loaded(FILENAME):
 
         if len(msg.text.split()) >= 2:
             args = msg.text.split(None, 1)[1]
-            if args == "yes" or args == "on" or args == "ya":
+            if args in ["yes", "on", "ya"]:
                 sql.disabledel_set(chat.id, True)
                 send_message(update.effective_message, languages.tl(update.effective_message, "Ketika command di nonaktifkan, maka saya *akan menghapus* pesan command tsb."), parse_mode="markdown")
                 return
-            elif args == "no" or args == "off":
+            elif args in ["no", "off"]:
                 sql.disabledel_set(chat.id, False)
                 send_message(update.effective_message, languages.tl(update.effective_message, "Saya *tidak akan menghapus* pesan dari command yang di nonaktifkan."), parse_mode="markdown")
                 return
@@ -211,9 +210,7 @@ if is_module_loaded(FILENAME):
         if not disabled:
             return languages.tl(chat_id, "Tidak ada perintah yang dinonaktifkan!")
 
-        result = ""
-        for cmd in disabled:
-            result += " - `{}`\n".format(escape_markdown(cmd))
+        result = "".join(" - `{}`\n".format(escape_markdown(cmd)) for cmd in disabled)
         return languages.tl(chat_id, "Perintah-perintah berikut saat ini dibatasi:\n{}").format(result)
 
 
@@ -222,8 +219,7 @@ if is_module_loaded(FILENAME):
     def commands(update, context):
         chat = update.effective_chat
         user = update.effective_user
-        conn = connected(context.bot, update, chat, user.id, need_admin=True)
-        if conn:
+        if conn := connected(context.bot, update, chat, user.id, need_admin=True):
             chat = dispatcher.bot.getChat(conn)
             chat_id = conn
             chat_name = dispatcher.bot.getChat(conn).title

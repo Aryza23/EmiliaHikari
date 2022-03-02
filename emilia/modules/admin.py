@@ -46,8 +46,7 @@ def promote(update, context):
 	user = update.effective_user  # type: Optional[User]
 	args = context.args
 
-	conn = connected(context.bot, update, chat, user.id, need_admin=True)
-	if conn:
+	if conn := connected(context.bot, update, chat, user.id, need_admin=True):
 		chat = dispatcher.bot.getChat(conn)
 		chat_id = conn
 		chat_name = dispatcher.bot.getChat(conn).title
@@ -61,9 +60,8 @@ def promote(update, context):
 
 	user_id = extract_user(message, args)
 	user_send = dispatcher.bot.getChatMember(chat_id, message.from_user.id)
-	if (user_send.status == "administrator" and user_send.can_promote_members) or (user_send.status == "creator"):
-		pass
-	else:
+	if (user_send.status != "administrator"
+	    or not user_send.can_promote_members) and user_send.status != "creator":
 		send_message(update.effective_message, "You don't have permission to do this command")
 		return ""
 
@@ -75,7 +73,7 @@ def promote(update, context):
 		return ""
 
 	user_member = chat.get_member(user_id)
-	if user_member.status == 'administrator' or user_member.status == 'creator':
+	if user_member.status in ['administrator', 'creator']:
 		send_message(update.effective_message, tl(update.effective_message, "Bagaimana saya ingin menaikan jabatan seseorang yang sudah menjadi admin?"))
 		return ""
 
@@ -105,7 +103,7 @@ def promote(update, context):
 		return
 
 	send_message(update.effective_message, tl(update.effective_message, "💖 Berhasil dinaikan jabatannya!"))
-	
+
 	return "<b>{}:</b>" \
 		   "\n#PROMOTED" \
 		   "\n<b>Admin:</b> {}" \
@@ -126,8 +124,7 @@ def demote(update, context):
 	user = update.effective_user  # type: Optional[User]
 	args = context.args
 
-	conn = connected(context.bot, update, chat, user.id, need_admin=True)
-	if conn:
+	if conn := connected(context.bot, update, chat, user.id, need_admin=True):
 		chat = dispatcher.bot.getChat(conn)
 		chat_id = conn
 		chat_name = dispatcher.bot.getChat(conn).title
@@ -152,7 +149,7 @@ def demote(update, context):
 		send_message(update.effective_message, tl(update.effective_message, "Orang ini MENCIPTAKAN obrolan ini, bagaimana saya menurunkannya?"))
 		return ""
 
-	if not user_member.status == 'administrator':
+	if user_member.status != 'administrator':
 		send_message(update.effective_message, tl(update.effective_message, "Tidak dapat menurunkan jabatan apa yang belum dipromosikan!"))
 		return ""
 
@@ -220,11 +217,11 @@ def pin(update, context):
 			send_message(update.effective_message, tl(update.effective_message, "Balas pesan untuk pin pesan tersebut pada grup ini"))
 			return ""
 
-	is_group = chat.type != "private" and chat.type != "channel"
+	is_group = chat.type not in ["private", "channel"]
 
 	is_silent = True
 	if len(args) >= 1:
-		is_silent = not (args[0].lower() == 'silent' or args[0].lower() == 'off' or args[0].lower() == 'mute')
+		is_silent = not args[0].lower() in ['silent', 'off', 'mute']
 
 	if prev_message and is_group:
 		try:
@@ -232,9 +229,7 @@ def pin(update, context):
 			if conn:
 				send_message(update.effective_message, tl(update.effective_message, "Saya sudah pin pesan dalam grup {}").format(chat_name))
 		except BadRequest as excp:
-			if excp.message == "Chat_not_modified":
-				pass
-			else:
+			if excp.message != "Chat_not_modified":
 				raise
 		return "<b>{}:</b>" \
 			   "\n#PINNED" \
@@ -272,9 +267,7 @@ def unpin(update, context):
 		if conn:
 			send_message(update.effective_message, tl(update.effective_message, "Saya sudah unpin pesan dalam grup {}").format(chat_name))
 	except BadRequest as excp:
-		if excp.message == "Chat_not_modified":
-			pass
-		else:
+		if excp.message != "Chat_not_modified":
 			raise
 
 	return "<b>{}:</b>" \
@@ -292,8 +285,7 @@ def invite(update, context):
 	user = update.effective_user  # type: Optional[User]
 	args = context.args
 
-	conn = connected(context.bot, update, chat, user.id, need_admin=True)
-	if conn:
+	if conn := connected(context.bot, update, chat, user.id, need_admin=True):
 		chat = dispatcher.bot.getChat(conn)
 		chat_id = conn
 		chat_name = dispatcher.bot.getChat(conn).title
@@ -307,7 +299,7 @@ def invite(update, context):
 
 	if chat.username:
 		send_message(update.effective_message, chat.username)
-	elif chat.type == chat.SUPERGROUP or chat.type == chat.CHANNEL:
+	elif chat.type in [chat.SUPERGROUP, chat.CHANNEL]:
 		bot_member = chat.get_member(context.bot.id)
 		if bot_member.can_invite_users:
 			invitelink = context.bot.exportChatInviteLink(chat.id)
@@ -325,8 +317,7 @@ def adminlist(update, context):
 	user = update.effective_user  # type: Optional[User]
 	args = context.args
 
-	conn = connected(context.bot, update, chat, user.id, need_admin=False)
-	if conn:
+	if conn := connected(context.bot, update, chat, user.id, need_admin=False):
 		chat = dispatcher.bot.getChat(conn)
 		chat_id = conn
 		chat_name = dispatcher.bot.getChat(conn).title
@@ -380,8 +371,7 @@ def permapin(update, context):
 	message = update.effective_message  # type: Optional[Message]
 	args = context.args
 
-	conn = connected(context.bot, update, chat, user.id, need_admin=False)
-	if conn:
+	if conn := connected(context.bot, update, chat, user.id, need_admin=False):
 		chat = dispatcher.bot.getChat(conn)
 		chat_id = conn
 		chat_name = dispatcher.bot.getChat(conn).title
@@ -399,7 +389,7 @@ def permapin(update, context):
 		message.delete()
 	except BadRequest:
 		pass
-	if str(data_type) in ('Types.BUTTON_TEXT', 'Types.TEXT'):
+	if str(data_type) in {'Types.BUTTON_TEXT', 'Types.TEXT'}:
 		try:
 			sendingmsg = context.bot.send_message(chat_id, text, parse_mode="markdown",
 								 disable_web_page_preview=True, reply_markup=InlineKeyboardMarkup(tombol))
@@ -423,8 +413,7 @@ def permanent_pin_set(update, context):
 	chat = update.effective_chat  # type: Optional[Chat]
 	args = context.args
 
-	conn = connected(context.bot, update, chat, user.id, need_admin=True)
-	if conn:
+	if conn := connected(context.bot, update, chat, user.id, need_admin=True):
 		chat = dispatcher.bot.getChat(conn)
 		chat_id = conn
 		chat_name = dispatcher.bot.getChat(conn).title
@@ -473,7 +462,7 @@ def permanent_pin_set(update, context):
 			send_message(update.effective_message, text_maker, parse_mode="markdown")
 			return ""
 
-	is_group = chat.type != "private" and chat.type != "channel"
+	is_group = chat.type not in ["private", "channel"]
 
 	if prev_message and is_group:
 		sql.set_permapin(chat.id, prev_message)
@@ -493,7 +482,7 @@ def permanent_pin(update, context):
 	args = context.args
 
 	get_permapin = sql.get_permapin(chat.id)
-	if get_permapin and not user.id == context.bot.id:
+	if get_permapin and user.id != context.bot.id:
 		try:
 			to_del = context.bot.pinChatMessage(chat.id, get_permapin, disable_notification=True)
 		except BadRequest:
@@ -523,7 +512,9 @@ def __chat_settings__(chat_id, user_id):
 		if user.first_name == '':
 			name = tl(user_id, "☠ Akun Terhapus")
 		else:
-			name = "{}".format(mention_markdown(user.id, user.first_name + " " + (user.last_name or "")))
+			name = "{}".format(
+			    mention_markdown(user.id,
+			                     f'{user.first_name} ' + ((user.last_name or ""))))
 		#if user.username:
 		#    name = escape_markdown("@" + user.username)
 		if status == "creator":
@@ -535,7 +526,9 @@ def __chat_settings__(chat_id, user_id):
 		if user.first_name == '':
 			name = tl(user_id, "☠ Akun Terhapus")
 		else:
-			name = "{}".format(mention_markdown(user.id, user.first_name + " " + (user.last_name or "")))
+			name = "{}".format(
+			    mention_markdown(user.id,
+			                     f'{user.first_name} ' + ((user.last_name or ""))))
 		#if user.username:
 		#    name = escape_markdown("@" + user.username)
 		if status == "administrator":

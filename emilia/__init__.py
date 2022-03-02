@@ -39,29 +39,35 @@ if ENV:
 	IS_DEBUG = os.environ.get("IS_DEBUG", False)
 
 	try:
-		SUDO_USERS = set(int(x) for x in os.environ.get("SUDO_USERS", "").split())
+		SUDO_USERS = {int(x) for x in os.environ.get("SUDO_USERS", "").split()}
 	except ValueError:
 		raise Exception("Your sudo users list does not contain valid integers.")
 
 	try:
-		SUPPORT_USERS = set(int(x) for x in os.environ.get("SUPPORT_USERS", "").split())
+		SUPPORT_USERS = {int(x) for x in os.environ.get("SUPPORT_USERS", "").split()}
 	except ValueError:
 		raise Exception("Your support users list does not contain valid integers.")
 
 	try:
-		SPAMMERS = set(int(x) for x in os.environ.get("SPAMMERS", "").split())
+		SPAMMERS = {int(x) for x in os.environ.get("SPAMMERS", "").split()}
 	except ValueError:
 		raise Exception("Your spammers users list does not contain valid integers.")
 
 	try:
-		GROUP_BLACKLIST = set(int(x) for x in os.environ.get("GROUP_BLACKLIST", "").split())
+		GROUP_BLACKLIST = {
+		    int(x)
+		    for x in os.environ.get("GROUP_BLACKLIST", "").split()
+		}
 	except ValueError:
 		raise Exception("Your GROUP_BLACKLIST users list does not contain valid integers.")
 	except AttributeError:
 		GROUP_BLACKLIST = []
 
 	try:
-		WHITELIST_USERS = set(int(x) for x in os.environ.get("WHITELIST_USERS", "").split())
+		WHITELIST_USERS = {
+		    int(x)
+		    for x in os.environ.get("WHITELIST_USERS", "").split()
+		}
 	except ValueError:
 		raise Exception("Your whitelisted users list does not contain valid integers.")
 
@@ -102,29 +108,29 @@ else:
 		IS_DEBUG = False
 
 	try:
-		SUDO_USERS = set(int(x) for x in Config.SUDO_USERS or [])
+		SUDO_USERS = {int(x) for x in Config.SUDO_USERS or []}
 	except ValueError:
 		raise Exception("Your sudo users list does not contain valid integers.")
 
 	try:
-		SUPPORT_USERS = set(int(x) for x in Config.SUPPORT_USERS or [])
+		SUPPORT_USERS = {int(x) for x in Config.SUPPORT_USERS or []}
 	except ValueError:
 		raise Exception("Your support users list does not contain valid integers.")
 
 	try:
-		SPAMMERS = set(int(x) for x in Config.SPAMMERS or [])
+		SPAMMERS = {int(x) for x in Config.SPAMMERS or []}
 	except ValueError:
 		raise Exception("Your spammers users list does not contain valid integers.")
 
 	try:
-		GROUP_BLACKLIST = set(int(x) for x in Config.GROUP_BLACKLIST or [])
+		GROUP_BLACKLIST = {int(x) for x in Config.GROUP_BLACKLIST or []}
 	except ValueError:
 		raise Exception("Your GROUP_BLACKLIST users list does not contain valid integers.")
 	except AttributeError:
 		GROUP_BLACKLIST = []
 
 	try:
-		WHITELIST_USERS = set(int(x) for x in Config.WHITELIST_USERS or [])
+		WHITELIST_USERS = {int(x) for x in Config.WHITELIST_USERS or []}
 	except ValueError:
 		raise Exception("Your whitelisted users list does not contain valid integers.")
 
@@ -190,7 +196,7 @@ def spamcheck(func):
 		if not user:
 			return func(update, context, *args, **kwargs)
 		# If msg from self, return True
-		if user and user.id == context.bot.id:
+		if user.id == context.bot.id:
 			return False
 		if IS_DEBUG:
 			print("{} | {} | {} | {}".format(message.text or message.caption, user.id, message.chat.title, chat.id))

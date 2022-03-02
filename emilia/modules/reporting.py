@@ -41,19 +41,18 @@ def report_setting(update, context):
 			send_message(update.effective_message, tl(update.effective_message, "Preferensi laporan Anda saat ini: `{}`").format(sql.user_should_report(chat.id)),
 						   parse_mode=ParseMode.MARKDOWN)
 
-	else:
-		if len(args) >= 1:
-			if args[0] in ("yes", "on"):
-				sql.set_chat_setting(chat.id, True)
-				send_message(update.effective_message, tl(update.effective_message, "Menghidupkan pelaporan! Admin yang telah mengaktifkan laporan akan diberi tahu ketika seseorang menyebut /report "
-							   "atau @admin."))
+	elif len(args) >= 1:
+		if args[0] in ("yes", "on"):
+			sql.set_chat_setting(chat.id, True)
+			send_message(update.effective_message, tl(update.effective_message, "Menghidupkan pelaporan! Admin yang telah mengaktifkan laporan akan diberi tahu ketika seseorang menyebut /report "
+						   "atau @admin."))
 
-			elif args[0] in ("no", "off"):
-				sql.set_chat_setting(chat.id, False)
-				send_message(update.effective_message, tl(update.effective_message, "Mematikan pelaporan! Tidak ada admin yang akan diberitahukan ketika seseorang menyebut /report atau @admin."))
-		else:
-			send_message(update.effective_message, tl(update.effective_message, "Pengaturan obrolan saat ini adalah: `{}`").format(sql.chat_should_report(chat.id)),
-						   parse_mode=ParseMode.MARKDOWN)
+		elif args[0] in ("no", "off"):
+			sql.set_chat_setting(chat.id, False)
+			send_message(update.effective_message, tl(update.effective_message, "Mematikan pelaporan! Tidak ada admin yang akan diberitahukan ketika seseorang menyebut /report atau @admin."))
+	else:
+		send_message(update.effective_message, tl(update.effective_message, "Pengaturan obrolan saat ini adalah: `{}`").format(sql.chat_should_report(chat.id)),
+					   parse_mode=ParseMode.MARKDOWN)
 
 
 @run_async
@@ -112,8 +111,13 @@ def report(update, context) -> str:
 		context.bot.send_message(chat.id, tl(update.effective_message, "<i>⚠️ Pesan telah di laporkan ke semua admin!</i>"), parse_mode=ParseMode.HTML, reply_to_message_id=message.message_id)
 
 		CURRENT_REPORT[str(chat.id)] = msg
-		CURRENT_REPORT[str(chat.id)+"key"] = reply_markup
-		CURRENT_REPORT[str(chat.id)+"user"] = {'name': reported_user.first_name, 'id': reported_user.id, 'rname': user.first_name, 'rid': user.id}
+		CURRENT_REPORT[f'{str(chat.id)}key'] = reply_markup
+		CURRENT_REPORT[f'{str(chat.id)}user'] = {
+		    'name': reported_user.first_name,
+		    'id': reported_user.id,
+		    'rname': user.first_name,
+		    'rid': user.id,
+		}
 		for admin in admin_list:
 			if admin.user.is_bot:  # can't message bots
 				continue
@@ -189,9 +193,9 @@ def button(bot, update):
 	report_method = splitter[1]
 	report_target = splitter[2]
 	msg = CURRENT_REPORT.get(str(report_chat))
-	userinfo = CURRENT_REPORT.get(str(report_chat)+"user")
-	key = CURRENT_REPORT.get(str(report_chat)+"key")
-	if msg == None or userinfo == None or key == None:
+	userinfo = CURRENT_REPORT.get(f'{str(report_chat)}user')
+	key = CURRENT_REPORT.get(f'{str(report_chat)}key')
+	if msg is None or userinfo is None or key is None:
 		query.message.edit_text(tl(update.effective_message, "Sesi telah berakhir!"))
 		return
 
@@ -248,8 +252,8 @@ def buttonask(bot, update):
 	report_target = splitter[1].split('|')[1].split('=')[1]
 	chat = update.effective_chat
 	msg = CURRENT_REPORT.get(str(report_chat))
-	userinfo = CURRENT_REPORT.get(str(report_chat)+"user")
-	key = CURRENT_REPORT.get(str(report_chat)+"key")
+	userinfo = CURRENT_REPORT.get(f'{str(report_chat)}user')
+	key = CURRENT_REPORT.get(f'{str(report_chat)}key')
 
 	if isyes == "y":
 		a, b = user_protection_checker(context.bot, report_target)

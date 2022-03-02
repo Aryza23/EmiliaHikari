@@ -75,6 +75,8 @@ def send(update, message, keyboard, backup_message):
 																	  "valid di salah satu tombolnya. Harap perbarui.")),
 													  reply_to_message_id=reply, 
 													  parse_mode=ParseMode.MARKDOWN)
+		elif excp.message == "Reply message not found":
+			msg = dispatcher.bot.send_message(chat.id, message, parse_mode=ParseMode.MARKDOWN, reply_markup=keyboard, disable_web_page_preview=True)
 		elif excp.message == "Unsupported url protocol":
 			msg = dispatcher.bot.send_message(chat.id, markdown_parser(backup_message +
 																	  tl(update.effective_message, "\nCatatan: pesan saat ini memiliki tombol yang "
@@ -91,8 +93,6 @@ def send(update, message, keyboard, backup_message):
 			LOGGER.warning(message)
 			LOGGER.warning(keyboard)
 			LOGGER.exception("Could not parse! got invalid url host errors")
-		elif excp.message == "Reply message not found":
-			msg = dispatcher.bot.send_message(chat.id, message, parse_mode=ParseMode.MARKDOWN, reply_markup=keyboard, disable_web_page_preview=True)
 		else:
 			try:
 				msg = dispatcher.bot.send_message(chat.id, markdown_parser(backup_message +

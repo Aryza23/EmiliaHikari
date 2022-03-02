@@ -86,8 +86,9 @@ def gban(update, context):
             send_message(update.effective_message, tl(update.effective_message, "Pengguna ini sudah dilarang secara global; Saya akan mengubah alasannya, tetapi Anda belum memberi saya satu..."))
             return
 
-        old_reason = sql.update_gban_reason(user_id, user_chat.username or user_chat.first_name, reason)
-        if old_reason:
+        if old_reason := sql.update_gban_reason(
+            user_id, user_chat.username or user_chat.first_name, reason
+        ):
             send_message(update.effective_message, tl(update.effective_message, "Pengguna ini sudah gbanned, karena alasan berikut:\n"
                                "<code>{}</code>\n"
                                "Saya telah melakukan dan memperbaruinya dengan alasan baru Anda!").format(html.escape(old_reason)),
@@ -119,9 +120,7 @@ def gban(update, context):
         try:
             context.bot.kick_chat_member(chat_id, user_id)
         except BadRequest as excp:
-            if excp.message in GBAN_ERRORS:
-                pass
-            else:
+            if excp.message not in GBAN_ERRORS:
                 send_message(update.effective_message, tl(update.effective_message, "Tidak dapat melarang secara global karena: {}").format(excp.message))
                 send_to_list(context.bot, SUDO_USERS + SUPPORT_USERS, tl(update.effective_message, "Tidak dapat melarang secara global karena: {}").format(excp.message))
                 sql.ungban_user(user_id)
@@ -180,9 +179,7 @@ def ungban(update, context):
                 context.bot.unban_chat_member(chat_id, user_id)
 
         except BadRequest as excp:
-            if excp.message in UNGBAN_ERRORS:
-                pass
-            else:
+            if excp.message not in UNGBAN_ERRORS:
                 send_message(update.effective_message, tl(update.effective_message, "Tidak dapat menghapus larangan secara global karena: {}").format(excp.message))
                 context.bot.send_message(OWNER_ID, tl(update.effective_message, "Tidak dapat menghapus larangan secara global karena: {}").format(excp.message))
                 return
@@ -224,23 +221,29 @@ def check_and_ban(update, user_id, should_message=True):
 @run_async
 def enforce_gban(update, context):
     # Not using @restrict handler to avoid spamming - just ignore if cant gban.
-    if sql.does_chat_gban(update.effective_chat.id) and update.effective_chat.get_member(context.bot.id).can_restrict_members:
-        user = update.effective_user  # type: Optional[User]
-        chat = update.effective_chat  # type: Optional[Chat]
-        msg = update.effective_message  # type: Optional[Message]
+    if (
+        not sql.does_chat_gban(update.effective_chat.id)
+        or not update.effective_chat.get_member(
+            context.bot.id
+        ).can_restrict_members
+    ):
+        return
+    user = update.effective_user  # type: Optional[User]
+    chat = update.effective_chat  # type: Optional[Chat]
+    msg = update.effective_message  # type: Optional[Message]
 
+    if user and not is_user_admin(chat, user.id):
+        check_and_ban(update, user.id)
+
+    if msg.new_chat_members:
+        new_members = update.effective_message.new_chat_members
+        for mem in new_members:
+            check_and_ban(update, mem.id)
+
+    if msg.reply_to_message:
+        user = msg.reply_to_message.from_user  # type: Optional[User]
         if user and not is_user_admin(chat, user.id):
-            check_and_ban(update, user.id)
-
-        if msg.new_chat_members:
-            new_members = update.effective_message.new_chat_members
-            for mem in new_members:
-                check_and_ban(update, mem.id)
-
-        if msg.reply_to_message:
-            user = msg.reply_to_message.from_user  # type: Optional[User]
-            if user and not is_user_admin(chat, user.id):
-                check_and_ban(update, user.id, should_message=False)
+            check_and_ban(update, user.id, should_message=False)
 
 
 @run_async

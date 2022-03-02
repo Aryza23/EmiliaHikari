@@ -214,18 +214,14 @@ def get_id(update, context):
                     user2.id,
                     escape_markdown(user1.first_name),
                     user1.id)
-            if update.effective_message.chat.type != "private":
-                text += "\n" + tl(update.effective_message, "Id grup ini adalah `{}`.").format(update.effective_message.chat.id)
-            send_message(update.effective_message, 
-                text,
-                parse_mode=ParseMode.MARKDOWN)
         else:
             user = context.bot.get_chat(user_id)
             text = tl(update.effective_message, "Id {} adalah `{}`.").format(escape_markdown(user.first_name), user.id)
-            if update.effective_message.chat.type != "private":
-                text += "\n" + tl(update.effective_message, "Id grup ini adalah `{}`.").format(update.effective_message.chat.id)
-            send_message(update.effective_message, text,
-                                                parse_mode=ParseMode.MARKDOWN)
+        if update.effective_message.chat.type != "private":
+            text += "\n" + tl(update.effective_message, "Id grup ini adalah `{}`.").format(update.effective_message.chat.id)
+        send_message(update.effective_message, 
+            text,
+            parse_mode=ParseMode.MARKDOWN)
     elif user_id == "error":
         try:
             user = context.bot.get_chat(args[0])
@@ -285,21 +281,19 @@ def info(update, context):
 
     if user.id == OWNER_ID:
         text += tl(update.effective_message, "\n\nOrang ini adalah pemilik saya - saya tidak akan pernah melakukan apa pun terhadap mereka!")
+    elif user.id in SUDO_USERS:
+        text += tl(update.effective_message, "\n\nOrang ini adalah salah satu pengguna sudo saya! " \
+                "Hampir sama kuatnya dengan pemilik saya - jadi tontonlah.")
     else:
-        if user.id in SUDO_USERS:
-            text += tl(update.effective_message, "\n\nOrang ini adalah salah satu pengguna sudo saya! " \
-                    "Hampir sama kuatnya dengan pemilik saya - jadi tontonlah.")
-        else:
-            if user.id in SUPPORT_USERS:
-                text += tl(update.effective_message, "\n\nOrang ini adalah salah satu pengguna dukungan saya! " \
-                        "Tidak sekuat pengguna sudo, tetapi masih dapat menyingkirkan Anda dari peta.")
+        if user.id in SUPPORT_USERS:
+            text += tl(update.effective_message, "\n\nOrang ini adalah salah satu pengguna dukungan saya! " \
+                    "Tidak sekuat pengguna sudo, tetapi masih dapat menyingkirkan Anda dari peta.")
 
-            if user.id in WHITELIST_USERS:
-                text += tl(update.effective_message, "\n\nOrang ini telah dimasukkan dalam daftar putih! " \
-                        "Itu berarti saya tidak diizinkan untuk melarang/menendang mereka.")
+        if user.id in WHITELIST_USERS:
+            text += tl(update.effective_message, "\n\nOrang ini telah dimasukkan dalam daftar putih! " \
+                    "Itu berarti saya tidak diizinkan untuk melarang/menendang mereka.")
 
-    fedowner = feds_sql.get_user_owner_fed_name(user.id)
-    if fedowner:
+    if fedowner := feds_sql.get_user_owner_fed_name(user.id):
         text += tl(update.effective_message, "\n\n<b>Pengguna ini adalah pemilik federasi ini:</b>\n<code>")
         text += "</code>, <code>".join(fedowner)
         text += "</code>"
@@ -309,8 +303,7 @@ def info(update, context):
     #     text += ", ".join(fedadmin)
 
     for mod in USER_INFO:
-        mod_info = mod.__user_info__(user.id, chat.id).strip()
-        if mod_info:
+        if mod_info := mod.__user_info__(user.id, chat.id).strip():
             text += "\n\n" + mod_info
 
     send_message(update.effective_message, text, parse_mode=ParseMode.HTML)
@@ -364,8 +357,7 @@ def get_time(update, context):
 @run_async
 @spamcheck
 def get_time_alt(update, context):
-    args = context.args
-    if args:
+    if args := context.args:
         location = " ".join(args)
         if location.lower() == context.bot.first_name.lower():
             send_message(update.effective_message, "Selalu ada waktu banned untukku!")
@@ -402,7 +394,7 @@ def echo(update, context):
     # Advanced
     text, data_type, content, buttons = get_message_type(message)
     tombol = build_keyboard_alternate(buttons)
-    if str(data_type) in ('Types.BUTTON_TEXT', 'Types.TEXT'):
+    if str(data_type) in {'Types.BUTTON_TEXT', 'Types.TEXT'}:
         try:
             if message.reply_to_message:
                 context.bot.send_message(chat_id, text, parse_mode="markdown", reply_to_message_id=message.reply_to_message.message_id, disable_web_page_preview=True, reply_markup=InlineKeyboardMarkup(tombol))

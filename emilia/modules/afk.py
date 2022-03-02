@@ -21,11 +21,7 @@ AFK_REPLY_GROUP = 8
 @spamcheck
 def afk(update, context):
     args = update.effective_message.text.split(None, 1)
-    if len(args) >= 2:
-        reason = args[1]
-    else:
-        reason = ""
-
+    reason = args[1] if len(args) >= 2 else ""
     sql.set_afk(update.effective_user.id, reason)
     send_message(update.effective_message, tl(update.effective_message, "{} sekarang AFK!").format(update.effective_user.first_name))
 

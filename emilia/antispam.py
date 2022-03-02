@@ -17,11 +17,11 @@ def antispam_restrict_user(user_id, time):
 	# print(GLOBAL_USER_DATA)
 	if user_id in NoResUser:
 		return True
-	if GLOBAL_USER_DATA.get(user_id):
-		if GLOBAL_USER_DATA.get(user_id).get("AntiSpamHard"):
-			if GLOBAL_USER_DATA.get(user_id).get("AntiSpamHard").get('restrict'):
-				# print(GLOBAL_USER_DATA)
-				return True
+	if (GLOBAL_USER_DATA.get(user_id)
+	    and GLOBAL_USER_DATA.get(user_id).get("AntiSpamHard")
+	    and GLOBAL_USER_DATA.get(user_id).get("AntiSpamHard").get('restrict')):
+		# print(GLOBAL_USER_DATA)
+		return True
 	try:
 		number = GLOBAL_USER_DATA["AntiSpam"][user_id]['value']
 		status = GLOBAL_USER_DATA["AntiSpam"][user_id]['status']
@@ -32,13 +32,10 @@ def antispam_restrict_user(user_id, time):
 		status = False
 		restime = None
 		level = 1
-	if status:
-		if restime:
-			if int(time) <= int(restime):
-				return False
-	if restime:
-		if int(time) <= int(restime):
-			number += 1
+	if status and restime and int(time) <= int(restime):
+		return False
+	if restime and int(time) <= int(restime):
+		number += 1
 	if number >= int(AntiSpamValue*level):
 		status = True
 		restrict_time = int(time)+(60*(number/AntiSpamValue))
@@ -51,63 +48,57 @@ def antispam_cek_user(user_id, time):
 	# print(GLOBAL_USER_DATA)
 	try:
 		value = GLOBAL_USER_DATA["AntiSpam"]
-		if value.get(user_id):
-			value = GLOBAL_USER_DATA["AntiSpam"][user_id]
-			if value['restrict']:
-				if int(time) >= int(value['restrict']):
-					if value['status']:
-						#value['value'] = 0
-						value['status'] = False
-						value['level'] += 1
-						value['restrict'] = 0
-					else:
-						value['value'] = 2*int(value['level'])
-				else:
-					if value['status']:
-						try:
-							number = GLOBAL_USER_DATA["AntiSpamHard"][user_id]['value']
-							status = GLOBAL_USER_DATA["AntiSpamHard"][user_id]['status']
-							restime = GLOBAL_USER_DATA["AntiSpamHard"][user_id]['restrict']
-							level = GLOBAL_USER_DATA["AntiSpamHard"][user_id]['level']
-						except:
-							number = 0
-							status = False
-							restime = None
-							level = 1
-						if status == False:
-							if number >= 5:
-								restrict_time = int(time)+3600
-								status = True
-								GLOBAL_USER_DATA["AntiSpam"] = {user_id: {"status": status, "user": user_id, "value": GLOBAL_USER_DATA["AntiSpam"][user_id]['value'], "restrict": restrict_time, "level": GLOBAL_USER_DATA["AntiSpam"][user_id]['level']}}
-							else:
-								restrict_time = None
-								number += 1
-						else:
-							dispatcher.bot.sendMessage(Owner, "⚠ Warning: user `{}` was detected spam.".format(user_id), parse_mode="markdown")
-							GLOBAL_USER_DATA["AntiSpamHard"] = {user_id: {"status": False, "user": user_id, "value": 0, "restrict": restime, "level": level}}
-							# print(GLOBAL_USER_DATA["AntiSpamHard"])
-							return value
-						GLOBAL_USER_DATA["AntiSpamHard"] = {user_id: {"status": status, "user": user_id, "value": number, "restrict": restrict_time, "level": level}}
-						# print(GLOBAL_USER_DATA["AntiSpamHard"])
-			return value
-		else:
+		if not value.get(user_id):
 			return {"status": False, "user": user_id, "value": 0, "restrict": None, "level": 1}
+		value = GLOBAL_USER_DATA["AntiSpam"][user_id]
+		if value['restrict']:
+			if int(time) >= int(value['restrict']):
+				if value['status']:
+					#value['value'] = 0
+					value['status'] = False
+					value['level'] += 1
+					value['restrict'] = 0
+				else:
+					value['value'] = 2*int(value['level'])
+			elif value['status']:
+				try:
+					number = GLOBAL_USER_DATA["AntiSpamHard"][user_id]['value']
+					status = GLOBAL_USER_DATA["AntiSpamHard"][user_id]['status']
+					restime = GLOBAL_USER_DATA["AntiSpamHard"][user_id]['restrict']
+					level = GLOBAL_USER_DATA["AntiSpamHard"][user_id]['level']
+				except:
+					number = 0
+					status = False
+					restime = None
+					level = 1
+				if not status:
+					if number >= 5:
+						restrict_time = int(time)+3600
+						status = True
+						GLOBAL_USER_DATA["AntiSpam"] = {user_id: {"status": status, "user": user_id, "value": GLOBAL_USER_DATA["AntiSpam"][user_id]['value'], "restrict": restrict_time, "level": GLOBAL_USER_DATA["AntiSpam"][user_id]['level']}}
+					else:
+						restrict_time = None
+						number += 1
+				else:
+					dispatcher.bot.sendMessage(Owner, "⚠ Warning: user `{}` was detected spam.".format(user_id), parse_mode="markdown")
+					GLOBAL_USER_DATA["AntiSpamHard"] = {user_id: {"status": False, "user": user_id, "value": 0, "restrict": restime, "level": level}}
+					# print(GLOBAL_USER_DATA["AntiSpamHard"])
+					return value
+				GLOBAL_USER_DATA["AntiSpamHard"] = {user_id: {"status": status, "user": user_id, "value": number, "restrict": restrict_time, "level": level}}
+									# print(GLOBAL_USER_DATA["AntiSpamHard"])
+		return value
 	except KeyError:
 		return {"status": False, "user": user_id, "value": 0, "restrict": None, "level": 1}
 
 def check_user_spam(user_id):
-	if GLOBAL_USER_DATA.get("AntiSpam"):
-		if GLOBAL_USER_DATA["AntiSpam"].get(user_id):
-			status = GLOBAL_USER_DATA["AntiSpam"].get(user_id).get('status')
-		else:
-			status = False
+	if GLOBAL_USER_DATA.get("AntiSpam") and GLOBAL_USER_DATA["AntiSpam"].get(
+	    user_id):
+		status = GLOBAL_USER_DATA["AntiSpam"].get(user_id).get('status')
 	else:
 		status = False
-	if GLOBAL_USER_DATA.get("AntiSpamHard"):
-		if GLOBAL_USER_DATA["AntiSpamHard"].get(user_id):
-			status_hard = GLOBAL_USER_DATA["AntiSpamHard"].get(user_id).get('status')
-		else:
-			status_hard = False
+	if GLOBAL_USER_DATA.get(
+	    "AntiSpamHard") and GLOBAL_USER_DATA["AntiSpamHard"].get(user_id):
+		status_hard = GLOBAL_USER_DATA["AntiSpamHard"].get(user_id).get('status')
 	else:
 		status_hard = False
 	return {"status": status, "status_hard": status_hard}
